@@ -1,0 +1,9 @@
+[submodule "projects/nanomsg"]
+	path = projects/nanomsg
+	url = git@github.com:nanomsg/nanomsg
+[submodule "projects/nanoconfig"]
+	path = projects/nanoconfig
+	url = git@github.com:nanomsg/nanoconfig
+[submodule "projects/topologist"]
+	path = projects/topologist
+	url = git@github.com:nanomsg/topologist
