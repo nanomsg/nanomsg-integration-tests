@@ -7,10 +7,13 @@ ExternalProject_Add(
   SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/projects/nanomsg
   CONFIGURE_COMMAND sh autogen.sh &&
     ${CMAKE_CURRENT_SOURCE_DIR}/projects/nanomsg/configure
-    --prefix=${CMAKE_CURRENT_BINARY_DIR}/projects/nanomsg
+    --prefix=${CMAKE_CURRENT_BINARY_DIR}/projects/nanomsg/dist/
   PREFIX ${CMAKE_CURRENT_BINARY_DIR}/projects/nanomsg
   BUILD_COMMAND make
   BUILD_IN_SOURCE 1
 )
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/projects/nanomsg/dist/
+    DESTINATION "${CMAKE_INSTALL_PREFIX}")
+
 add_subdirectory(projects/nanoconfig)
 add_subdirectory(projects/topologist)
