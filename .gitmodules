@@ -7,3 +7,9 @@
 [submodule "projects/topologist"]
 	path = projects/topologist
 	url = git@github.com:nanomsg/topologist
+[submodule "projects/nanomsg-python"]
+	path = projects/nanomsg-python
+	url = git@github.com:tonysimpson/nanomsg-python.git
+[submodule "projects/collectd-nanomsg-estp"]
+	path = projects/collectd-nanomsg-estp
+	url = git@github.com:estp/collectd-nanomsg-estp.git
