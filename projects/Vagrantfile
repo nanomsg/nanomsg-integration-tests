@@ -1,0 +1,22 @@
+buildscript = <<BUILDSCRIPT
+    apt-get update --fix-missing
+    apt-get install -y cmake make gcc automake libtool python-dev
+    cd /vagrant
+    make
+BUILDSCRIPT
+
+boxscript = <<BOXSCRIPT
+    apt-get install -y collectd
+    cp -R /vagrant/_dist/* /
+BOXSCRIPT
+
+Vagrant.configure("2") do |config|
+    config.vm.define "builder" do |builder|
+        builder.vm.box = "precise64"
+        builder.vm.provision "shell", inline: buildscript
+    end
+    config.vm.define "boxer" do |boxer|
+        boxer.vm.box = "precise64"
+        boxer.vm.provision "shell", inline: boxscript
+    end
+end
