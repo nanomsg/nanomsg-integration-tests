@@ -1,13 +1,19 @@
 DESTDIR:=$(PWD)/_dist
 CFLAGS:="-I$(DESTDIR)/usr/include"
 LDFLAGS:="-L$(DESTDIR)/usr/lib"
+PROVIDER?="virtualbox"
 
 all: nanomsg nanoconfig topologist nanomsg-python collectd-nanomsg-estp
+
+box: nntest.box
 
 clean: nanomsg_clean nanoconfig_clean topologist_clean
 clean: nanomsg-python_clean collectd-nanomsg-estp_clean
 clean:
-	rm -rf _build _dist
+	-rm -rf _build _dist
+
+boxclean:
+	-rm -rf nntest.box
 
 
 nanomsg:
@@ -24,7 +30,8 @@ nanoconfig:
 	-mkdir -p _build/nanoconfig
 	cd _build/nanoconfig; cmake ../../nanoconfig \
 		-DCMAKE_INSTALL_PREFIX=/usr \
-		-DCMAKE_C_FLAGS=$(CFLAGS) -DCMAKE_SHARED_LINKER_FLAGS=$(LDFLAGS)
+		-DCMAKE_C_FLAGS=$(CFLAGS) \
+		-DCMAKE_SHARED_LINKER_FLAGS=$(LDFLAGS) -DCMAKE_EXE_LINKER_FLAGS=$(LDFLAGS)
 	make -C _build/nanoconfig install DESTDIR=$(DESTDIR)
 
 nanoconfig_clean:
@@ -53,7 +60,18 @@ collectd-nanomsg-estp:
 collectd-nanomsg-estp_clean:
 	make -C collectd-nanomsg-estp clean
 
+nntest.box:
+	make clean
+	vagrant destroy --force builder boxer
+	vagrant up builder --provider=$(PROVIDER)
+	vagrant destroy --force builder
+	vagrant up boxer --provider=$(PROVIDER)
+	vagrant package boxer --output $@
+	vagrant destroy --force boxer
+
+
 
 .PHONY: all nanomsg nanoconfig topologist nanomsg-python collectd-nanomsg-estp
 .PHONY: clean nanomsg_clean nanoconfig_clean topologist_clean
 .PHONY: nanomsg-python_clean collectd-nanomsg-estp_clean
+.PHONY: box
