@@ -1,4 +1,4 @@
 /build
-/.vagrant
+.vagrant
 /vagrant_build
 /tmp

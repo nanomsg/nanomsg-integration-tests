@@ -1,0 +1,7 @@
+pre-start script
+    while [ ! -e /code/factor.py ]; do
+        sleep 1
+    done
+end script
+
+exec /usr/bin/python2 /code/factor.py
