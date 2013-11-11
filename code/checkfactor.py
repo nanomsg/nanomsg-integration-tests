@@ -19,14 +19,13 @@ def main():
     ap.add_argument('--min-value', metavar="NUM",
         help="Maximum number that's sent for factorizing (default %(default)d)",
         default=10**11, type=int)
-    ap.add_argument('--connect', metavar="ADDR", required=True,
-        help="Nanomsg address to connect to",
-        default=[], action='append')
+    ap.add_argument('--topology', metavar="ADDR",
+        help="Nanoconfig topology to connect to",
+        default=None)
     options = ap.parse_args()
 
     sock = Socket(REQ)
-    for c in options.connect:
-        sock.connect(c)
+    sock.configure('nanoconfig://factor?role=client')
 
     start_time = time.time()
     for i in range(options.requests):

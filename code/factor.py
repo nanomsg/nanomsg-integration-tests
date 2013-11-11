@@ -34,7 +34,7 @@ def factorize_naive(n):
 
 def main():
     sock = Socket(REP)
-    sock.bind('tcp://0.0.0.0:10001')
+    sock.configure('nanoconfig://factor?role=worker')
     while True:
         num = int(sock.recv())
         res = factorize_naive(num)
