@@ -30,8 +30,7 @@ config: Vagrantfile
 
 Vagrantfile: vm/vagrant.tpl
 	sed \
-		's/@num_workers@/$(NWORKERS)/' \
-		's/@bridge@/$(BRIDGE)/' \
+		's/@num_workers@/$(NWORKERS)/;s/@bridge@/$(BRIDGE)/' \
 		vm/vagrant.tpl > $@
 
 clean:
