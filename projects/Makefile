@@ -47,8 +47,8 @@ topologist:
 topologist_clean:
 	# nothing, all artifacts in the build directory
 
-nanomsg-python:
-	cd nanomsg-python; python setup.py build_ext $(CFLAGS) $(LDFLAGS)
+nanomsg-python: nanoconfig
+	cd nanomsg-python; LD_LIBRARY_PATH=$(DESTDIR)/usr/lib python setup.py build_ext $(CFLAGS) $(LDFLAGS)
 	cd nanomsg-python; python setup.py install --root=$(DESTDIR)/ --optimize=1
 
 nanomsg-python_clean:

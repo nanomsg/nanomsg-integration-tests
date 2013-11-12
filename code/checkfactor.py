@@ -25,7 +25,7 @@ def main():
     options = ap.parse_args()
 
     sock = Socket(REQ)
-    sock.configure('nanoconfig://factor?role=client')
+    sock.configure(options.topology)
 
     start_time = time.time()
     for i in range(options.requests):

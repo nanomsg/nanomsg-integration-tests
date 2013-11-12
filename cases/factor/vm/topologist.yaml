@@ -1,1 +1,16 @@
-exec /usr/bin/topologist
+server:
+  config-addr:
+  - !Bind "tcp://@master:ip@:10000"
+
+layouts:
+  simple:
+    client -> worker:
+      port: 10001
+
+topologies:
+  factor: !Topology
+    type: reqrep
+    layout: simple
+    assign:
+      client:
+      - host: "@master:ip@"

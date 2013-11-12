@@ -8,18 +8,18 @@ NREQUESTS?=10000
 test: config vboxes load
 
 load:
-	vagrant ssh master -- python2 /code/checkfactor.py --requests $(NREQUESTS)
+	vagrant ssh master -- "/vagrant/tmpcfg/loadscript.sh" $(NREQUESTS)
 
 vboxes_up:
 	vagrant up --no-provision
 
 vboxes_prepare_configs: vboxes_up
 	-mkdir tmpcfg
-	(\
-		master_ip=$$(vagrant ssh master -- ip -f inet addr show eth1 | grep -Po 'inet \K[\.\d]+'); \
-		sed 's/@master:ip@/'$$master_ip'/' < vm/factor.conf > tmpcfg/factor.conf; \
-	 	sed 's/@master:ip@/'$$master_ip'/' < vm/topologist.yaml > tmpcfg/topologist.yaml; \
-	)
+	master_ip=$$(vagrant ssh master -- ip -f inet addr show eth1 | grep -Po 'inet \K[\.\d]+'); \
+	sed 's/@master:ip@/'$$master_ip'/' < vm/factor.conf > tmpcfg/factor.conf; \
+	sed 's/@master:ip@/'$$master_ip'/' < vm/topologist.yaml > tmpcfg/topologist.yaml; \
+	sed 's/@master:ip@/'$$master_ip'/' < vm/loadscript.sh > tmpcfg/loadscript.sh
+	chmod +x tmpcfg/loadscript.sh
 
 vboxes_configure: vboxes_prepare_configs
 	vagrant reload --provision
