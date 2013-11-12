@@ -1,6 +1,6 @@
 buildscript = <<BUILDSCRIPT
     apt-get update --fix-missing
-    apt-get install -y cmake make gcc automake libtool python-dev
+    apt-get install -y cmake make gcc automake libtool python-dev collectd-core curl
     cd /vagrant
     make
 BUILDSCRIPT
