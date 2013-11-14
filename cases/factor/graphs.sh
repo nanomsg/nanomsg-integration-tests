@@ -10,6 +10,9 @@ colors[worker0]=#0000FF
 colors[worker1]=#0000C0
 colors[worker2]=#FF00FF
 colors[worker3]=#C000C0
+colors[worker4]=#C0C0C0
+colors[worker5]=#00FF00
+colors[worker6]=#C0FF00
 
 #colors[master]=#171A14
 #colors[worker0]=#5C665A
@@ -25,7 +28,7 @@ $RRDTOOL graph $timerange report/la.png \
 $RRDTOOL graph $timerange report/msg_recv.png \
     $(for i in $allmachines; do
         cdef="CDEF:$i=0"
-        for j in rrd/$i/nanomsg.*-socket.*/derive-messages_received.rrd; do
+        for j in rrd/$i/*-socket.*/derive-messages_received.rrd; do
             name=${j//[^a-z0-9]/_}
             echo DEF:$name=$j:value:AVERAGE
             cdef="$cdef,$name,+"
@@ -37,7 +40,7 @@ $RRDTOOL graph $timerange report/msg_recv.png \
 $RRDTOOL graph $timerange report/msg_sent.png \
     $(for i in $allmachines; do
         cdef="CDEF:$i=0"
-        for j in rrd/$i/nanomsg.*-socket.*/derive-messages_sent.rrd; do
+        for j in rrd/$i/*-socket.*/derive-messages_sent.rrd; do
             name=${j//[^a-z0-9]/_}
             echo DEF:$name=$j:value:AVERAGE
             cdef="$cdef,$name,+"

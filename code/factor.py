@@ -1,4 +1,9 @@
+import os
+
 from nanomsg import Socket, REP
+
+
+os.environ['NN_APPLICATION_NAME'] = "factor"
 
 
 def factorize_naive(n):

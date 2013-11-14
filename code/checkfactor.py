@@ -1,11 +1,15 @@
 from __future__ import print_function
 
+import os
 import time
 import argparse
 import random
 from functools import reduce
 
 from nanomsg import Socket, REQ
+
+
+os.environ['NN_APPLICATION_NAME'] = 'checkfactor'
 
 
 def main():
