@@ -1,7 +1,6 @@
 DESTDIR:=$(PWD)/_dist
 CFLAGS:="-I$(DESTDIR)/usr/include"
 LDFLAGS:="-L$(DESTDIR)/usr/lib"
-PROVIDER?="virtualbox"
 
 all: nanomsg nanoconfig topologist nanomsg-python collectd-nanomsg-estp
 
@@ -63,9 +62,9 @@ collectd-nanomsg-estp_clean:
 nntest.box:
 	make clean
 	vagrant destroy --force builder boxer
-	vagrant up builder --provider=$(PROVIDER)
+	vagrant up builder
 	vagrant destroy --force builder
-	vagrant up boxer --provider=$(PROVIDER)
+	vagrant up boxer
 	vagrant package boxer --output $@
 	vagrant destroy --force boxer
 
