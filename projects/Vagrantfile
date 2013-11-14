@@ -1,11 +1,12 @@
 buildscript = <<BUILDSCRIPT
-    apt-get update --fix-missing
-    apt-get install -y cmake make gcc automake libtool python-dev collectd-core curl
+    apt-get update
+    apt-get install -y cmake make gcc automake libtool python-dev collectd-dev libsensors4-dev
     cd /vagrant
     make
 BUILDSCRIPT
 
 boxscript = <<BOXSCRIPT
+    apt-get update
     apt-get install -y collectd-core
     cp -R /vagrant/_dist/* /
 BOXSCRIPT

@@ -13,28 +13,29 @@ load:
 vboxes_up:
 	vagrant up --no-provision
 
-vboxes_prepare_configs: vboxes_up
+configure: vboxes_up
 	-mkdir tmpcfg
 	master_ip=$$(vagrant ssh master -- ip -f inet addr show eth1 | grep -Po 'inet \K[\.\d]+'); \
-	sed 's/@master:ip@/'$$master_ip'/' < vm/factor.conf > tmpcfg/factor.conf; \
-	sed 's/@master:ip@/'$$master_ip'/' < vm/topologist.yaml > tmpcfg/topologist.yaml; \
-	sed 's/@master:ip@/'$$master_ip'/' < vm/loadscript.sh > tmpcfg/loadscript.sh
+	sed 's/@master:ip@/'$$master_ip'/g' < vm/factor.conf > tmpcfg/factor.conf; \
+	sed 's/@master:ip@/'$$master_ip'/g' < vm/topologist.yaml > tmpcfg/topologist.yaml; \
+	sed 's/@master:ip@/'$$master_ip'/g' < vm/topologist.conf > tmpcfg/topologist.conf; \
+	sed 's/@master:ip@/'$$master_ip'/g' < vm/loadscript.sh > tmpcfg/loadscript.sh; \
+	MASTER_IP=$$master_ip vagrant reload --provision
 	chmod +x tmpcfg/loadscript.sh
 
-vboxes_configure: vboxes_prepare_configs
-	vagrant reload --provision
 
-vboxes: vboxes_configure
+vboxes: configure
 
 config: Vagrantfile
 
 Vagrantfile: vm/vagrant.tpl
 	sed \
-		's/@num_workers@/$(NWORKERS)/;s/@bridge@/$(BRIDGE)/' \
+		's/@num_workers@/$(NWORKERS)/g;s/@bridge@/$(BRIDGE)/g' \
 		vm/vagrant.tpl > $@
 
 clean:
 	vagrant destroy --force
 	rm Vagrantfile
+	rm -rf rrd
 
 .PHONY: test config clean vboxes load vboxes_up vboxes_prepare_configs vboxes_configure
