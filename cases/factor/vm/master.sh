@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+echo master > /etc/hostname
+hostname master
 install /vagrant/tmpcfg/topologist.yaml /etc/topologist.yaml
 install /vagrant/tmpcfg/topologist.conf /etc/init/topologist.conf
 install /vagrant/vm/master_collectd.conf /etc/collectd/collectd.conf

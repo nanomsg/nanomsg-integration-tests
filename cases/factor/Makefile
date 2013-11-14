@@ -5,10 +5,22 @@ BRIDGE?=br0
 # Testrun settings
 NREQUESTS?=10000
 
-test: config vboxes load
+
+test: config vboxes load report
 
 load:
+	@date +%s > tmpcfg/start_timestamp
+	@echo Test started at $(shell date -d@$(shell cat tmpcfg/start_timestamp))
 	vagrant ssh master -- "/vagrant/tmpcfg/loadscript.sh" $(NREQUESTS)
+	@date +%s > tmpcfg/finish_timestamp
+	@echo Test finished at $(shell date -d@$(shell cat tmpcfg/finish_timestamp))
+	@echo Downloading RRDs
+	rsync --archive --stats --rsh="vagrant ssh master -- exec -a" master:/var/lib/collectd/ rrd
+
+
+report: tmpcfg/start_timestamp tmpcfg/finish_timestamp
+	-mkdir report
+	./graphs.sh $(NWORKERS)
 
 vboxes_up:
 	vagrant up --no-provision
@@ -38,4 +50,4 @@ clean:
 	rm Vagrantfile
 	rm -rf rrd
 
-.PHONY: test config clean vboxes load vboxes_up vboxes_prepare_configs vboxes_configure
+.PHONY: test config clean vboxes load vboxes_up vboxes_prepare_configs vboxes_configure report
