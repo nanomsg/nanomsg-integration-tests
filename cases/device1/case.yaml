@@ -1,0 +1,53 @@
+#!../../gen/bootstrap.py
+layout:
+- device <- client
+- device -> worker
+
+nodes:
+  worker:
+    run: python2 /code/factor.py
+  device:
+    run: ncdev --topology $TOPOLOGY_URL
+  master:
+    role: client
+    run: >
+      python2 /code/checkfactor.py
+      --concurrent $CONCURRENT
+
+tests:
+
+  sequential:
+    duration: 120
+    vars:
+      CONCURRENT: 1
+    instances:
+      worker: 2
+
+  simple:
+    duration: 120
+    vars:
+      CONCURRENT: 1000
+    instances:
+      worker: 2
+
+  drop:
+    duration: 180
+    vars:
+      CONCURRENT: 1000
+    instances:
+      worker: 2
+    timeline:
+      30:
+      - node: worker1
+        exec: iptables -A test-chain -p tcp --dport 20000 -j DROP
+      60:
+      - node: worker1
+        exec: iptables -D test-chain 1
+      90:
+      - node: worker0
+        exec: iptables -A test-chain -p tcp --dport 20000 -j DROP
+      120:
+      - node: worker1
+        exec: iptables -D test-chain 1
+
+
