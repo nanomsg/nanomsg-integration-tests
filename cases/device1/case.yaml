@@ -47,7 +47,7 @@ tests:
       - node: worker0
         exec: iptables -A test-chain -p tcp --dport 20000 -j DROP
       120:
-      - node: worker1
+      - node: worker0
         exec: iptables -D test-chain 1
 
 

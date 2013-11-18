@@ -52,11 +52,20 @@ Real Tests
 
 All test cases are in ``cases`` directory. You may run any like this::
 
-    cd cases/factor
-    cat README.rst
-    make test
+    cd cases/device1
+    ./case.yaml test_name
 
-If test runs successfully you will get some results in ``reports`` directory.
+This will bootstrap all configs for the test, and print instructions of how
+to run the test. They are similar to following::
+
+    vagrant up --provision
+    ./runtest.sh
+    vagrant destroy --force
+    ./mkreport.sh
+
+The ``test_name`` can be find out either by looking in yaml file or by running
+the command with random name, and looking into error output. You may also
+tweak the test yaml, especially ``tests`` section to tweak test settings.
 
 
 Host Dependencies
@@ -69,6 +78,8 @@ to run the tests:
 * make
 * rrdtool
 * rsync
+* python (probably both 2 and 3 supported, python3 is tested though)
+* PyYAML
 
 You also need whatever your vagrant provider needs (e.g. virtualbox itself
 by default).

@@ -1,2 +1,5 @@
 Vagrantfile
 /_provision
+/runtest.sh
+/report
+/mkreport.sh
