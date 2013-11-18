@@ -7,7 +7,7 @@ import argparse
 import random
 from functools import reduce
 
-from nanomsg import Socket, REQ, AF_SP_RAW
+from nanomsg import Socket, REQ, AF_SP_RAW, SOCKET_NAME
 
 
 os.environ['NN_APPLICATION_NAME'] = 'checkfactor'
@@ -36,13 +36,11 @@ def main():
     ap.add_argument('--min-value', metavar="NUM",
         help="Maximum number that's sent for factorizing (default %(default)d)",
         default=10**11, type=int)
-    ap.add_argument('--topology', metavar="ADDR",
-        help="Nanoconfig topology to connect to",
-        default=None)
     options = ap.parse_args()
 
     sock = Socket(REQ, domain=AF_SP_RAW)
-    sock.configure(options.topology)
+    sock.setsockopt(SOCKET_NAME, "factor")
+    sock.configure(os.environ["TOPOLOGY_URL"])
 
     start_time = time.time()
     reqiter = requests(options)
@@ -60,7 +58,6 @@ def main():
         rid = struct.unpack_from('>L', data)[0] & ~0x80000000
         factors = map(int, data[4:].decode('ascii').split(','))
         checkval = reduce(int.__mul__, factors)
-        vv = req[rid]
         if rid not in req:
             sp += 1
         elif req.pop(rid) != checkval:

@@ -1,6 +1,6 @@
 import os
 
-from nanomsg import Socket, REP
+from nanomsg import Socket, REP, SOCKET_NAME
 
 
 os.environ['NN_APPLICATION_NAME'] = "factor"
@@ -39,7 +39,8 @@ def factorize_naive(n):
 
 def main():
     sock = Socket(REP)
-    sock.configure('nanoconfig://factor?role=worker')
+    sock.configure(os.environ['TOPOLOGY_URL'])
+    sock.setsockopt(SOCKET_NAME, "factor")
     while True:
         num = int(sock.recv())
         res = factorize_naive(num)
