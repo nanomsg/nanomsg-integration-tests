@@ -4,7 +4,9 @@ from __future__ import print_function
 import re
 import yaml
 import shutil
+import os
 import os.path
+import stat
 import argparse
 import subprocess
 import sys
@@ -112,8 +114,8 @@ def add_graph(bash, html, title, values):
         line = val.format(name=name, color=col.pop())
         graphs.append(line)
     gname = re.sub('[^a-z_0-9]+', '-', title.strip().lower())
-    print('rrdtool graph $timerange report/{gname}.png' + ' '.join(graphs),
-        file=bash)
+    print('rrdtool graph $timerange report/{gname}.png '.format(gname=gname) +
+        ' '.join(graphs), file=bash)
     print('<h2>{title}</h2>\n'
           '<p><img src="{gname}.png"></p>\n'
           .format(title=title, gname=gname),
@@ -292,7 +294,7 @@ def main():
 
         print("#!/usr/bin/env bash", file=f)
         print("rm report/*.png", file=f)
-        print('timerange="--start $(<time_start) --end $(<time_finish)', file=f)
+        print('timerange="--start $(<.time_start) --end $(<.time_finish)"', file=f)
 
         print('<!DOCTYPE html>', file=h)
         print('<html><head>', file=h)
@@ -305,6 +307,11 @@ def main():
             for node in node2name})
 
         print('</body></html>', file=h)
+
+    st = os.stat('./runtest.sh')
+    os.chmod('./runtest.sh', st.st_mode | stat.S_IEXEC)
+    st = os.stat('./mkreport.sh')
+    os.chmod('./mkreport.sh', st.st_mode | stat.S_IEXEC)
 
     print("Now to run test, execute the following:")
     print("    vagrant up --provision")
