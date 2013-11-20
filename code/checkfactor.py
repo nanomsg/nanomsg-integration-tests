@@ -7,7 +7,7 @@ import argparse
 import random
 from functools import reduce
 
-from nanomsg import Socket, REQ, AF_SP_RAW, SOCKET_NAME
+from nanomsg import Socket, REQ, AF_SP_RAW, SOL_SOCKET, SOCKET_NAME
 
 
 os.environ['NN_APPLICATION_NAME'] = 'checkfactor'
@@ -39,7 +39,7 @@ def main():
     options = ap.parse_args()
 
     sock = Socket(REQ, domain=AF_SP_RAW)
-    sock.setsockopt(SOCKET_NAME, "factor")
+    sock.set_string_option(SOL_SOCKET, SOCKET_NAME, "client")
     sock.configure(os.environ["TOPOLOGY_URL"])
 
     start_time = time.time()

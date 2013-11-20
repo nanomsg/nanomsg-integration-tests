@@ -85,14 +85,23 @@ COLLECTD_SLAVE = """
     </Plugin>
 """
 
+WAIT_FOR_CODE = """
+pre-start script
+    while [ ! -e /code/factor.py ]; do
+        sleep 1
+    done
+end script
+"""
+
 
 def mkupstart(prov, cfgdir, name, run, env={}):
     with open(cfgdir + '/' + name + '.conf', 'wt') as file:
         for k, v in env.items():
             print('env {}={}'.format(k, v), file=file)
         print('respawn', file=file)
-        print('start on mounted', file=file)
-        print('exec {}'.format(run), file=file)
+        print('start on started wait_for_code', file=file)
+        cline = ' '.join(map(shlex.quote, run.split()))
+        print('exec {}'.format(cline), file=file)
 
     print('install /vagrant/{}/{}.conf /etc/init/{}.conf'
         .format(cfgdir, name, name), file=prov)
@@ -107,18 +116,19 @@ def run(*args):
         sys.exit(1)
     return stdout.decode('ascii')
 
-def add_graph(bash, html, title, values):
+def add_graph(bash, html, rdir, title, values):
     graphs = []
     col = set(GRAPH_COLORS)
     for name, val in values.items():
         line = val.format(name=name, color=col.pop())
         graphs.append(line)
     gname = re.sub('[^a-z_0-9]+', '-', title.strip().lower())
-    print('rrdtool graph $timerange report/{gname}.png '.format(gname=gname) +
-        ' '.join(graphs), file=bash)
+    print('rrdtool graph $timerange {rdir}/{gname}.png '
+        .format(rdir=rdir, gname=gname) + ' '.join(graphs),
+        file=bash)
     print('<h2>{title}</h2>\n'
-          '<p><img src="{gname}.png"></p>\n'
-          .format(title=title, gname=gname),
+          '<p><img src="../{rdir}/{gname}.png"></p>\n'
+          .format(rdir=rdir, title=title, gname=gname),
           file=html)
 
 
@@ -219,12 +229,20 @@ def main():
         cfgdir = '_provision/cfg/' + node
         os.mkdir(cfgdir)
 
+
         with open('_provision/scripts/' + node + '.sh', 'wt') as prov:
             print('#!/usr/bin/env bash', file=prov)
             print('echo {} > /etc/hostname'.format(name), file=prov)
             print('hostname {}'.format(node), file=prov)
 
             # Every node
+            with open(cfgdir + '/wait_for_code.conf', 'wt') as wcfg:
+                print(WAIT_FOR_CODE, file=wcfg)
+                print('install /vagrant/{cfgdir}/wait_for_code.conf '
+                      '/etc/init/wait_for_code.conf'
+                      .format(cfgdir=cfgdir), file=prov)
+                print('service wait_for_code start', file=prov)
+
             with open(cfgdir + '/collectd.conf', 'wt') as cfile:
                 if node == 'master':
                     ctext = COLLECTD_MASTER
@@ -259,9 +277,9 @@ def main():
                 vars = test.get('vars', {}).copy()
                 vars['TOPOLOGY_URL'] = url
                 exestr = re.sub('\$(\w+)',
-                    lambda m: str(test['vars'].get(m.group(1))),
+                    lambda m: str(vars.get(m.group(1))),
                     props['run'])
-                mkupstart(prov, cfgdir, role, exestr, env=env)
+                mkupstart(prov, cfgdir, 'test_case', exestr, env=env)
 
     print("Generating timeline script")
     with open("./runtest.sh", "wt") as f:
@@ -287,13 +305,14 @@ def main():
         print("echo Done, now run ./mkreport.sh\n", file=f)
 
     print("Generating report script")
-    if not os.path.exists('report'):
-        os.mkdir('report')
+    rdir = 'report/' + options.test_name
+    if not os.path.exists(rdir):
+        os.makedirs(rdir)
     with open("./mkreport.sh", "wt") as f, \
-         open("./report/all_graphs.html", "wt") as h:
+         open(rdir + ".html", "wt") as h:
 
         print("#!/usr/bin/env bash", file=f)
-        print("rm report/*.png", file=f)
+        print("rm "+rdir, file=f)
         print('timerange="--start $(<.time_start) --end $(<.time_finish)"', file=f)
 
         print('<!DOCTYPE html>', file=h)
@@ -302,7 +321,7 @@ def main():
         print('</head><body>', file=h)
         print('<h1>Test report: {}</h1>'.format(options.test_name), file=h)
 
-        add_graph(f, h, 'Load Averages', {node:
+        add_graph(f, h, rdir, 'Load Averages', {node:
             'DEF:{name}=rrd/{name}/load/load.rrd:shortterm:AVERAGE LINE1:{name}{color}:{name}'
             for node in node2name})
 

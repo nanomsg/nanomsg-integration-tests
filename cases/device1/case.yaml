@@ -7,12 +7,12 @@ nodes:
   worker:
     run: python2 /code/factor.py
   device:
-    run: ncdev --topology $TOPOLOGY_URL
+    run: ncdev --reqrep --topology $TOPOLOGY_URL
   master:
     role: client
-    run: >
-      python2 /code/checkfactor.py
+    run: python2 /code/checkfactor.py
       --concurrent $CONCURRENT
+      --requests 1000000000
 
 tests:
 
