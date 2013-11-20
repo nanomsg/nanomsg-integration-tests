@@ -1,7 +1,0 @@
-Vagrantfile
-/_provision
-/runtest.sh
-/rrd
-/report
-/mkreport.sh
-.test_*

@@ -5,12 +5,12 @@ layout:
 
 nodes:
   worker:
-    run: python2 /code/factor.py
+    run: python2 /code/factor_rep.py
   device:
     run: ncdev --reqrep --topology $TOPOLOGY_URL
   master:
     role: client
-    run: python2 /code/checkfactor.py
+    run: python2 /code/factor_req.py
       --concurrent $CONCURRENT
       --requests 1000000000
 
