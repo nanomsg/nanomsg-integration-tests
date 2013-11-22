@@ -1,6 +1,6 @@
 DESTDIR:=$(PWD)/_dist
-CFLAGS:="-I$(DESTDIR)/usr/include"
-LDFLAGS:="-L$(DESTDIR)/usr/lib"
+CFLAGS:="-I$(DESTDIR)/usr/include -g"
+LDFLAGS:="-L$(DESTDIR)/usr/lib -g"
 
 all: nanomsg nanoconfig topologist nanomsg-python collectd-nanomsg-estp
 
@@ -54,7 +54,7 @@ nanomsg-python_clean:
 	rm -rf nanomsg-python/build
 
 collectd-nanomsg-estp:
-	make -C collectd-nanomsg-estp install DESTDIR=$(DESTDIR) CFLAGS="$(CFLAGS) -I/usr/include/collectd" LDFLAGS=$(LDFLAGS)
+	make -C collectd-nanomsg-estp install DESTDIR=$(DESTDIR) CFLAGS=$(CFLAGS)" -I/usr/include/collectd" LDFLAGS=$(LDFLAGS)
 
 collectd-nanomsg-estp_clean:
 	make -C collectd-nanomsg-estp clean
