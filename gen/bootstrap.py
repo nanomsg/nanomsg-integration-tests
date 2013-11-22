@@ -11,6 +11,7 @@ import argparse
 import subprocess
 import sys
 import shlex
+import random
 from collections import defaultdict
 from itertools import count
 
@@ -40,7 +41,10 @@ VAGRANT_HEAD = """
 VAGRANT_HOST = """
     config.vm.define "{name}" do |cfg|
         cfg.vm.provision "shell", path: '_provision/scripts/{name}.sh'
-        cfg.vm.network "public_network", :bridge => "vagrantbr0"
+        cfg.vm.network "public_network", {{
+            bridge: "vagrantbr0",
+            mac: '{mac}',
+            }}
     end
 """
 
@@ -95,6 +99,17 @@ pre-start script
 end script
 """
 
+IPTABLES = """
+*filter
+:INPUT ACCEPT [350:23648]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [389:29796]
+:test-chain - [0:0]
+-A INPUT -j test-chain
+COMMIT
+# Completed on Fri Nov 22 15:30:52 2013
+"""
+
 def updated(a, *b):
     res = a.copy()
     for i in b:
@@ -112,7 +127,7 @@ def mkupstart(prov, cfgdir, name, run, env={}):
         cline = ' '.join(map(shlex.quote, run.split()))
         print('exec {}'.format(cline), file=file)
 
-    print('install /vagrant/{}/{}.conf /etc/init/{}.conf'
+    print('install -D /vagrant/{}/{}.conf /etc/init/{}.conf'
         .format(cfgdir, name, name), file=prov)
     print('service {} start'.format(name), file=prov)
 
@@ -193,7 +208,12 @@ def main():
                 inames = [nname]
             for iname in inames:
                 # TODO(tailhook) implement more networking options
-                print(VAGRANT_HOST.format(name=iname), file=f)
+
+                print(VAGRANT_HOST.format(
+                    name=iname,
+                    mac='00163e{:06x}'.format(
+                        random.randint(0x000000, 0xffffff)),
+                    ), file=f)
 
             namenodes[nname] = inames
             for n in inames:
@@ -258,9 +278,18 @@ def main():
             print('hostname {}'.format(node), file=prov)
 
             # Every node
+
+            with open(cfgdir + '/iptables.rules', 'wt') as wcfg:
+                print(IPTABLES, file=wcfg)
+                print('install -D /vagrant/{cfgdir}/iptables.rules '
+                      '/etc/iptables/rules.v4'
+                      .format(cfgdir=cfgdir), file=prov)
+                print('update-rc.d iptables-persistent enable', file=prov)
+                print('/etc/init.d/iptables-persistent start', file=prov)
+
             with open(cfgdir + '/wait_for_code.conf', 'wt') as wcfg:
                 print(WAIT_FOR_CODE, file=wcfg)
-                print('install /vagrant/{cfgdir}/wait_for_code.conf '
+                print('install -D /vagrant/{cfgdir}/wait_for_code.conf '
                       '/etc/init/wait_for_code.conf'
                       .format(cfgdir=cfgdir), file=prov)
                 print('service wait_for_code start', file=prov)
@@ -274,7 +303,7 @@ def main():
                     name=node,
                     master_ip=master_ip,
                     ), file=cfile)
-            print('install /vagrant/{cfgdir}/collectd.conf /etc/collectd/collectd.conf'
+            print('install -D /vagrant/{cfgdir}/collectd.conf /etc/collectd/collectd.conf'
                 .format(cfgdir=cfgdir), file=prov)
             print('/etc/init.d/collectd start', file=prov)
 
@@ -293,7 +322,7 @@ def main():
                     }
                 with open(cfgdir + '/topologist.yaml', 'wt') as f:
                     yaml.safe_dump(tdata, f, default_flow_style=False)
-                print('install /vagrant/{cfgdir}/topologist.yaml /etc/topologist.yaml'
+                print('install -D /vagrant/{cfgdir}/topologist.yaml /etc/topologist.yaml'
                     .format(cfgdir=cfgdir), file=prov)
                 mkupstart(prov, cfgdir, 'topologist',
                     '/usr/bin/topologist', env=env)

@@ -50,15 +50,15 @@ tests:
     timeline:
       30:
       - node: worker1
-        exec: iptables -A test-chain -p tcp --dport 20000 -j DROP
+        exec: sudo iptables -A test-chain -p tcp --dport 20000 -j DROP
       60:
       - node: worker1
-        exec: iptables -D test-chain 1
+        exec: sudo iptables -D test-chain 1
       90:
       - node: worker0
-        exec: iptables -A test-chain -p tcp --dport 20000 -j DROP
+        exec: sudo iptables -A test-chain -p tcp --dport 20000 -j DROP
       120:
       - node: worker0
-        exec: iptables -D test-chain 1
+        exec: sudo iptables -D test-chain 1
 
 
