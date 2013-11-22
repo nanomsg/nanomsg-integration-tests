@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 import struct
-import os
 import time
 import argparse
 import random
@@ -10,7 +9,6 @@ from functools import reduce
 from nanomsg import Socket, REQ, AF_SP_RAW, SOL_SOCKET, SOCKET_NAME
 
 
-os.environ['NN_APPLICATION_NAME'] = 'checkfactor'
 REQUEST_MASK = (1 << 31)-1
 
 
@@ -36,11 +34,13 @@ def main():
     ap.add_argument('--min-value', metavar="NUM",
         help="Maximum number that's sent for factorizing (default %(default)d)",
         default=10**11, type=int)
+    ap.add_argument('--topology', metavar="URL", required=True,
+        help="Url for topology to join to")
     options = ap.parse_args()
 
     sock = Socket(REQ, domain=AF_SP_RAW)
     sock.set_string_option(SOL_SOCKET, SOCKET_NAME, "client")
-    sock.configure(os.environ["TOPOLOGY_URL"])
+    sock.configure(options.topology)
 
     start_time = time.time()
     reqiter = requests(options)

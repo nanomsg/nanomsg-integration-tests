@@ -12,6 +12,8 @@ import subprocess
 import sys
 import shlex
 from collections import defaultdict
+from itertools import count
+
 
 GRAPH_COLORS = {
     '#8a56e2',
@@ -38,7 +40,7 @@ VAGRANT_HEAD = """
 VAGRANT_HOST = """
     config.vm.define "{name}" do |cfg|
         cfg.vm.provision "shell", path: '_provision/scripts/{name}.sh'
-        cfg.vm.network "public_network", :bridge => "br0"
+        cfg.vm.network "public_network", :bridge => "vagrantbr0"
     end
 """
 
@@ -87,17 +89,24 @@ COLLECTD_SLAVE = """
 
 WAIT_FOR_CODE = """
 pre-start script
-    while [ ! -e /code/factor.py ]; do
+    while [ ! -e /code/README.rst ]; do
         sleep 1
     done
 end script
 """
+
+def updated(a, *b):
+    res = a.copy()
+    for i in b:
+        res.update(i)
+    return res
 
 
 def mkupstart(prov, cfgdir, name, run, env={}):
     with open(cfgdir + '/' + name + '.conf', 'wt') as file:
         for k, v in env.items():
             print('env {}={}'.format(k, v), file=file)
+        print('env NN_APPLICATION_NAME={}'.format(name), file=file)
         print('respawn', file=file)
         print('start on started wait_for_code', file=file)
         cline = ' '.join(map(shlex.quote, run.split()))
@@ -116,6 +125,7 @@ def run(*args):
         sys.exit(1)
     return stdout.decode('ascii')
 
+
 def add_graph(bash, html, rdir, title, values):
     graphs = []
     col = set(GRAPH_COLORS)
@@ -132,6 +142,16 @@ def add_graph(bash, html, rdir, title, values):
           file=html)
 
 
+class Tag(object):
+    def __init__(self, tag, val):
+        self.tag = tag
+        self.val = val
+
+yaml.add_representer(Tag,
+    lambda dumper, t: dumper.represent_mapping(t.tag, t.val),
+    Dumper=yaml.SafeDumper)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('config')
@@ -144,7 +164,9 @@ def main():
     ap.add_argument('test_name', choices=config['tests'].keys())
     options = ap.parse_args()
 
-    nodes = config['nodes']
+    topologies = config['topologies']
+    services = config['services']
+    nodes = set(services)
     test = config['tests'][options.test_name]
 
     print("Cleaning old configuration")
@@ -163,7 +185,7 @@ def main():
     with open('Vagrantfile', 'wt') as f:
         print(VAGRANT_HEAD, file=f)
 
-        for nname, nprops in nodes.items():
+        for nname in nodes:
             num = test.get('instances', {}).get(nname, 1)
             if num > 1:
                 inames = [nname + str(i) for i in range(num)]
@@ -180,9 +202,11 @@ def main():
         print("end", file=f)
 
     ipnodes = set(('master',))
-    for val in config['layout']:
-        bnode = re.match('^\s*(\w+)\s*(--|->|<-)\s*(\w+)\s*$', val).group(1)
-        ipnodes.add(bnode)
+    for name, lst in config['layouts'].items():
+        for val in lst:
+            bnode = re.match('^\s*(\w+)\s*(--|->|<-)\s*(\w+)\s*$', val
+                             ).group(1)
+            ipnodes.add(bnode)
 
     print("Starting up [{}] to get their ip addresses"
         .format(', '.join(ipnodes)))
@@ -200,8 +224,7 @@ def main():
             'ip', 'addr', 'show', 'eth1')
         ip = re.search('inet ([\d\.]+)', data).group(1)
         name = node2name[node]
-        role = nodes.get(name, {}).get('role', name)
-        role_ips[role].append(ip)
+        role_ips[name].append(ip)
         node_ips[node] = ip
     role_ips = dict(role_ips)
 
@@ -212,15 +235,14 @@ def main():
 
     print("Generating configs")
     for node, name in node2name.items():
-        props = nodes.get(name, {})
-        role = props.get('role', name)
+        nsvc = services[name]
+        role = name
         ip = node_ips.get(node)
         if ip is not None:
-            url = 'nanoconfig://default?role={}&ip={}'.format(role, ip)
+            suffix = '?role={}&ip={}'.format(role, ip)
         else:
-            url = 'nanoconfig://default?role={}'.format(role)
+            suffix = '?role={}'.format(role)
         env = {
-            'TOPOLOGY_URL': url,
             'NN_CONFIG_SERVICE': 'tcp://{}:10000'.format(master_ip),
             'NN_PRINT_ERRORS': '1',
             'NN_STATISTICS_SOCKET': 'tcp://{}:10001'.format(master_ip),
@@ -257,15 +279,18 @@ def main():
             print('/etc/init.d/collectd start', file=prov)
 
             if name == 'master':
+                ports = count(20000)
                 tdata = {
-                    'layouts': {'default': config['layout']},
+                    'server': {
+                        'config-addr': ['tcp://{}:10000'.format(master_ip)],
+                        },
+                    'layouts': config['layouts'],
                     'topologies': {
-                        'default': {
-                            'type': 'reqrep',
-                            'layout': 'default',
-                            'default-port': 20000,
-                            'ip_addresses': role_ips,
-                    }}}
+                        k: Tag('!Topology', updated(v, {
+                            'port': next(ports),
+                            'ip-addresses': role_ips,
+                        })) for k, v in topologies.items()},
+                    }
                 with open(cfgdir + '/topologist.yaml', 'wt') as f:
                     yaml.safe_dump(tdata, f, default_flow_style=False)
                 print('install /vagrant/{cfgdir}/topologist.yaml /etc/topologist.yaml'
@@ -273,30 +298,30 @@ def main():
                 mkupstart(prov, cfgdir, 'topologist',
                     '/usr/bin/topologist', env=env)
 
-            if 'run' in props:
-                vars = test.get('vars', {}).copy()
-                vars['TOPOLOGY_URL'] = url
+            vars = test.get('vars', {}).copy()
+            for t in topologies:
+                vars['URL_' + t.upper()] = 'nanoconfig://' + t + suffix
+            for sname, scli in nsvc.items():
                 exestr = re.sub('\$(\w+)',
                     lambda m: str(vars.get(m.group(1))),
-                    props['run'])
-                mkupstart(prov, cfgdir, 'test_case', exestr, env=env)
+                    scli)
+                mkupstart(prov, cfgdir, sname, exestr, env=env)
 
     print("Generating timeline script")
     with open("./runtest.sh", "wt") as f:
         print("#!/usr/bin/env bash", file=f)
         print("date +%s > .test_start", file=f)
         print("start=$(<.test_start)", file=f)
+        print("wait_until() { sleep $(($1 - ($(date +%s) - start)));}", file=f)
         print("echo Test started at $(date -d@$start)", file=f)
         for tm in sorted(test.get('timeline', ())):
             commands = test['timeline'][tm]
             for c in commands:
-                print("sleep $(({} - ($(date +%s) - start)))"
-                    .format(tm), file=f)
+                print("wait_until {}".format(tm), file=f)
                 print("vagrant ssh {} -c {}"
                     .format(c['node'], shlex.quote(c['exec'])), file=f)
 
-        print("sleep $(({} - ($(date +%s) - start)))"
-            .format(test['duration']), file=f)
+        print("wait_until {}".format(test['duration']), file=f)
         print("date +%s > .test_finish", file=f)
         print("echo Test finished at $(date -d@$(<.test_finish))", file=f)
         print('rsync --archive --stats '
@@ -313,7 +338,7 @@ def main():
 
         print("#!/usr/bin/env bash", file=f)
         print("rm "+rdir, file=f)
-        print('timerange="--start $(<.time_start) --end $(<.time_finish)"', file=f)
+        print('timerange="--start $(<.test_start) --end $(<.test_finish)"', file=f)
 
         print('<!DOCTYPE html>', file=h)
         print('<html><head>', file=h)

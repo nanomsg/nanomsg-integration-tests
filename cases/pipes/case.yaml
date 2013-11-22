@@ -1,50 +1,60 @@
 #!../../gen/bootstrap.py
+
 layouts:
 
-  default:
-  - device <- master
-  - device -> worker
+  spread:
+  - master -> worker
+
+  gather:
+  - master <- worker
 
 topologies:
 
-  default:
-    type: reqrep
-    layout: default
+  spread:
+    type: pipeline
+    layout: spread
+
+  gather:
+    type: pipeline
+    layout: gather
+
 
 services:
 
   worker:
-    worker: python2 /code/factor_processor.py --rep $URL_DEFAULT
-
-  device:
-    proxy: ncdev --reqrep --topology $URL_DEFAULT
+    worker: python2 /code/factor_processor.py --pullpush $URL_SPREAD $URL_GATHER
 
   master:
-    load_generator: python2 /code/factor_req.py
-      --concurrent $CONCURRENT
-      --requests 1000000000
-      --topology $URL_DEFAULT
+    gen_numbers: python2 /code/gen_numbers.py --rate-limit $RATE_LIMIT --topology $URL_SPREAD
+    checker: python2 /code/factor_pull.py --topology $URL_GATHER
 
 tests:
 
-  sequential:
+  light:
     duration: 120
     vars:
-      CONCURRENT: 1
+      RATE_LIMIT: 100
     instances:
       worker: 2
 
-  simple:
+  medium:
     duration: 120
     vars:
-      CONCURRENT: 1000
+      RATE_LIMIT: 1000
     instances:
       worker: 2
+
+  heavy:
+    duration: 120
+    vars:
+      RATE_LIMIT: 100000
+    instances:
+      worker: 3
 
   drop:
     duration: 180
     vars:
-      CONCURRENT: 1000
+      RATE_LIMIT: 1000
     instances:
       worker: 2
     timeline:
