@@ -1,13 +1,13 @@
 buildscript = <<BUILDSCRIPT
     apt-get update
-    apt-get install -y cmake make gcc automake libtool python-dev collectd-dev libsensors4-dev
+    DEBIAN_FRONTEND=noninteractive apt-get install -y cmake make gcc automake libtool python-dev collectd-dev libsensors4-dev
     cd /vagrant
     make
 BUILDSCRIPT
 
 boxscript = <<BOXSCRIPT
     apt-get update
-    apt-get install -y collectd-core
+    DEBIAN_FRONTEND=noninteractive apt-get install -y collectd-core iptables-persistent
     cp -R /vagrant/_dist/* /
 BOXSCRIPT
 
