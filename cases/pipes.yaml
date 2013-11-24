@@ -1,5 +1,3 @@
-#!../../gen/bootstrap.py
-
 layouts:
 
   spread:
@@ -22,82 +20,82 @@ topologies:
 services:
 
   worker:
-    worker: python2 /code/factor_processor.py --pullpush $URL_SPREAD $URL_GATHER
+    worker: python2 /code/factor_processor.py
+      --pullpush $URL_SPREAD $URL_GATHER
 
   master:
-    gen_numbers: python2 /code/gen_numbers.py --rate-limit $RATE_LIMIT --topology $URL_SPREAD
-    checker: python2 /code/factor_pull.py --topology $URL_GATHER
+    gen_numbers: python2 /code/gen_numbers.py
+      --rate-limit $RATE_LIMIT
+      --topology $URL_SPREAD
+    checker: python2 /code/factor_pull.py
+      --topology $URL_GATHER
 
 tests:
 
   light:
     duration: 120
     vars:
-      RATE_LIMIT: 100
+      RATE_LIMIT: 50
     instances:
       worker: 2
 
   medium:
     duration: 120
     vars:
-      RATE_LIMIT: 1000
+      RATE_LIMIT: 100
     instances:
       worker: 2
 
   heavy:
     duration: 120
     vars:
-      RATE_LIMIT: 100000
+      RATE_LIMIT: 10000
     instances:
       worker: 3
 
-  drop:
+  quickreject:
     duration: 180
     vars:
-      RATE_LIMIT: 1000
+      RATE_LIMIT: 50
     instances:
       worker: 2
     timeline:
       30:
       - node: worker1
-        exec: &stopspread sudo iptables -A test-chain -p tcp --sport $PORT_SPREAD -j REJECT --reject-with tcp-reset
+        exec: &dropspread sudo iptables -A test-chain
+          -p tcp --sport $PORT_SPREAD
+          -j REJECT --reject-with tcp-reset
       60:
       - node: worker1
         exec: &resumeipt sudo iptables -D test-chain 1
       90:
       - node: worker0
-        exec: *stopspread
+        exec: *dropspread
       120:
       - node: worker0
         exec: *resumeipt
 
-  longdrop:
-    duration: &longdur 3600
+  quickdrop:
+    duration: 180
     vars:
-      RATE_LIMIT: 1000
+      RATE_LIMIT: 50
     instances:
       worker: 2
-    timeline: &longtimeline
-      600:
+    timeline:
+      30:
       - node: worker1
-        exec: *stopspread
-      1200:
+        exec: &rejectspread sudo iptables -A test-chain
+          -p tcp --sport $PORT_SPREAD
+          -j DROP
+      60:
       - node: worker1
         exec: *resumeipt
-      1800:
+      90:
       - node: worker0
-        exec: *stopspread
-      2400:
+        exec: *rejectspread
+      120:
       - node: worker0
         exec: *resumeipt
-
-  longlight:
-    duration: *longdur
-    vars:
-      RATE_LIMIT: 100
-    instances:
-      worker: 2
-    timeline: *longtimeline
 
 graphs:
   Workers Received:

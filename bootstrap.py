@@ -151,15 +151,15 @@ def run(*args):
         sys.exit(1)
 
 
-def add_graph(bash, html, rdir, title, graphs):
+def add_graph(bash, html, title, graphs):
     col = set(GRAPH_COLORS)
     gname = re.sub('[^a-z_0-9]+', '-', title.strip().lower())
-    print('rrdtool graph $timerange {rdir}/{gname}.png '
-        .format(rdir=rdir, gname=gname) + ' '.join(graphs),
+    print('rrdtool graph $timerange graphs/{gname}.png '
+        .format(gname=gname) + ' '.join(graphs),
         file=bash)
     print('<h2>{title}</h2>\n'
-          '<p><img src="../{rdir}/{gname}.png"></p>\n'
-          .format(rdir=rdir, title=title, gname=gname),
+          '<p><img src="graphs/{gname}.png"></p>\n'
+          .format(title=title, gname=gname),
           file=html)
 
 
@@ -366,14 +366,15 @@ def main():
         print("echo Done, now run ./mkreport.sh\n", file=f)
 
     print("Generating report script")
-    rdir = 'report/' + options.test_name
+    rdir = 'graphs'
     if not os.path.exists(rdir):
         os.makedirs(rdir)
     with open("./mkreport.sh", "wt") as f, \
-         open(rdir + ".html", "wt") as h:
+         open("report.html", "wt") as h:
 
         print("#!/usr/bin/env bash", file=f)
-        print("rm "+rdir, file=f)
+        print("rm -rf graphs", file=f)
+        print("mkdir graphs", file=f)
         print('timerange="--start $(<.test_start) --end $(<.test_finish)"', file=f)
 
         print('<!DOCTYPE html>', file=h)
@@ -383,13 +384,13 @@ def main():
         print('<h1>Test report: {}</h1>'.format(options.test_name), file=h)
 
         col = set(GRAPH_COLORS)
-        add_graph(f, h, rdir, 'Load Averages', [
+        add_graph(f, h, 'Load Averages', [
             'DEF:{name}=rrd/{name}/load/load.rrd:shortterm:AVERAGE '
             'LINE1:{name}{color}:{name}'.format(name=name, color=col.pop())
             for name in node2name])
 
         for gtitle, g in config.get('graphs', {}).items():
-            add_graph(f, h, rdir, gtitle, [
+            add_graph(f, h, gtitle, [
                 'DEF:{name}=rrd/{name}/{def} LINE1:{name}{color}:{name}'
                 .format(name=name, color=col.pop(), **g)
                 for name in namenodes[g['role']] ])

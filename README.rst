@@ -50,10 +50,12 @@ Now you may provision test containers.
 Real Tests
 ----------
 
-All test cases are in ``cases`` directory. You may run any like this::
+All test cases are in ``cases`` directory. But while running they create a lot
+of garbage files, so you should run them from a new directory:
 
-    cd cases/device1
-    ./case.yaml test_name
+    mkdir -p run/pipes
+    cd run/pipes
+    ../../bootstrap.py ../../cases/pipes.yaml test_name
 
 This will bootstrap all configs for the test, and print instructions of how
 to run the test. They are similar to following::
@@ -66,6 +68,14 @@ to run the test. They are similar to following::
 The ``test_name`` can be find out either by looking in yaml file or by running
 the command with random name, and looking into error output. You may also
 tweak the test yaml, especially ``tests`` section to tweak test settings.
+
+.. note:: The recommended way is to create a new directory for each test. You
+   may experience some bugs when trying to run same or different test case from
+   same directory
+
+.. warning:: Before removing test directory you may need to run
+   ``vagrant destroy``. Otherwise vagrant may leave some virtual machines
+   running or just lying around and taking disk space
 
 
 Host Dependencies
