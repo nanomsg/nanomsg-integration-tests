@@ -12,6 +12,7 @@ import subprocess
 import sys
 import shlex
 import random
+from string import Template
 from collections import defaultdict
 from itertools import count
 
@@ -150,12 +151,8 @@ def run(*args):
         sys.exit(1)
 
 
-def add_graph(bash, html, rdir, title, values):
-    graphs = []
+def add_graph(bash, html, rdir, title, graphs):
     col = set(GRAPH_COLORS)
-    for name, val in values.items():
-        line = val.format(name=name, color=col.pop())
-        graphs.append(line)
     gname = re.sub('[^a-z_0-9]+', '-', title.strip().lower())
     print('rrdtool graph $timerange {rdir}/{gname}.png '
         .format(rdir=rdir, gname=gname) + ' '.join(graphs),
@@ -167,12 +164,12 @@ def add_graph(bash, html, rdir, title, values):
 
 
 class Tag(object):
-    def __init__(self, tag, val):
+    def __init__(self, tag, data):
         self.tag = tag
-        self.val = val
+        self.data = data
 
 yaml.add_representer(Tag,
-    lambda dumper, t: dumper.represent_mapping(t.tag, t.val),
+    lambda dumper, t: dumper.represent_mapping(t.tag, t.data),
     Dumper=yaml.SafeDumper)
 
 
@@ -340,9 +337,7 @@ def main():
             for t in topologies:
                 vars['URL_' + t.upper()] = 'nanoconfig://' + t + suffix
             for sname, scli in nsvc.items():
-                exestr = re.sub('\$(\w+)',
-                    lambda m: str(vars.get(m.group(1))),
-                    scli)
+                exestr =  Template(scli).substitute(vars)
                 mkupstart(prov, cfgdir, sname, exestr, env=env)
 
     print("Generating timeline script")
@@ -356,8 +351,11 @@ def main():
             commands = test['timeline'][tm]
             for c in commands:
                 print("wait_until {}".format(tm), file=f)
+                vars = {'PORT_' + tk.upper(): tv.data['port']
+                        for tk, tv in tdata['topologies'].items()}
+                exestr =  Template(c['exec']).substitute(vars)
                 print("vagrant ssh {} -c {}"
-                    .format(c['node'], shlex.quote(c['exec'])), file=f)
+                    .format(c['node'], shlex.quote(exestr)), file=f)
 
         print("wait_until {}".format(test['duration']), file=f)
         print("date +%s > .test_finish", file=f)
@@ -384,9 +382,17 @@ def main():
         print('</head><body>', file=h)
         print('<h1>Test report: {}</h1>'.format(options.test_name), file=h)
 
-        add_graph(f, h, rdir, 'Load Averages', {node:
-            'DEF:{name}=rrd/{name}/load/load.rrd:shortterm:AVERAGE LINE1:{name}{color}:{name}'
-            for node in node2name})
+        col = set(GRAPH_COLORS)
+        add_graph(f, h, rdir, 'Load Averages', [
+            'DEF:{name}=rrd/{name}/load/load.rrd:shortterm:AVERAGE '
+            'LINE1:{name}{color}:{name}'.format(name=name, color=col.pop())
+            for name in node2name])
+
+        for gtitle, g in config.get('graphs', {}).items():
+            add_graph(f, h, rdir, gtitle, [
+                'DEF:{name}=rrd/{name}/{def} LINE1:{name}{color}:{name}'
+                .format(name=name, color=col.pop(), **g)
+                for name in namenodes[g['role']] ])
 
         print('</body></html>', file=h)
 
