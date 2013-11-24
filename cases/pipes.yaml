@@ -97,6 +97,22 @@ tests:
       - node: worker0
         exec: *resumeipt
 
+  15mindrop:
+
+    duration: 900
+    vars:
+      RATE_LIMIT: 50
+    instances:
+      worker: 2
+    timeline:
+      120:
+      - node: worker1
+        exec: *dropspread
+      420:
+      - node: worker1
+        exec: *resumeipt
+
+
 graphs:
   Workers Received:
     role: worker
