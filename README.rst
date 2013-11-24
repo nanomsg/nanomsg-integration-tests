@@ -58,12 +58,14 @@ of garbage files, so you should run them from a new directory:
     ../../bootstrap.py ../../cases/pipes.yaml test_name
 
 This will bootstrap all configs for the test, and print instructions of how
-to run the test. They are similar to following::
+to run the test. Usually it boils down to the following::
 
     vagrant up --provision
     ./runtest.sh
     vagrant destroy --force
     ./mkreport.sh
+
+Then you can observe the results in ``report.html``.
 
 The ``test_name`` can be find out either by looking in yaml file or by running
 the command with random name, and looking into error output. You may also
