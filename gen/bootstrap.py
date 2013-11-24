@@ -92,6 +92,7 @@ COLLECTD_SLAVE = """
 """
 
 WAIT_FOR_CODE = """
+start on remote-filesystems
 pre-start script
     while [ ! -e /code/README.rst ]; do
         sleep 1
@@ -132,13 +133,21 @@ def mkupstart(prov, cfgdir, name, run, env={}):
     print('service {} start'.format(name), file=prov)
 
 
-def run(*args):
+def ask(*args):
     sub = subprocess.Popen(args, stdout=subprocess.PIPE)
     stdout, _ = sub.communicate()
     if sub.poll():
         print("Error running: {}".format(args))
         sys.exit(1)
     return stdout.decode('ascii')
+
+
+def run(*args):
+    sub = subprocess.Popen(args)
+    stdout, _ = sub.communicate()
+    if sub.wait():
+        print("Error running: {}".format(args))
+        sys.exit(1)
 
 
 def add_graph(bash, html, rdir, title, values):
@@ -240,7 +249,7 @@ def main():
     node_ips = {}
     for node in ipnodes:
         # TODO(tailhook) check if other network interface may be used
-        data = run('vagrant', 'ssh', node, '--',
+        data = ask('vagrant', 'ssh', node, '--',
             'ip', 'addr', 'show', 'eth1')
         ip = re.search('inet ([\d\.]+)', data).group(1)
         name = node2name[node]
