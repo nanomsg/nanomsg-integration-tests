@@ -60,15 +60,47 @@ tests:
     timeline:
       30:
       - node: worker1
-        exec: sudo iptables -A test-chain -p tcp --dport 20000 -j DROP
+        exec: &stopspread sudo iptables -A test-chain -p tcp --sport $PORT_SPREAD -j REJECT --reject-with tcp-reset
       60:
       - node: worker1
-        exec: sudo iptables -D test-chain 1
+        exec: &resumeipt sudo iptables -D test-chain 1
       90:
       - node: worker0
-        exec: sudo iptables -A test-chain -p tcp --dport 20000 -j DROP
+        exec: *stopspread
       120:
       - node: worker0
-        exec: sudo iptables -D test-chain 1
+        exec: *resumeipt
 
+  longdrop:
+    duration: &longdur 3600
+    vars:
+      RATE_LIMIT: 1000
+    instances:
+      worker: 2
+    timeline: &longtimeline
+      600:
+      - node: worker1
+        exec: *stopspread
+      1200:
+      - node: worker1
+        exec: *resumeipt
+      1800:
+      - node: worker0
+        exec: *stopspread
+      2400:
+      - node: worker0
+        exec: *resumeipt
+
+  longlight:
+    duration: *longdur
+    vars:
+      RATE_LIMIT: 100
+    instances:
+      worker: 2
+    timeline: *longtimeline
+
+graphs:
+  Workers Received:
+    role: worker
+    def: worker-socket.pull/derive-messages_received.rrd:value:AVERAGE
 
