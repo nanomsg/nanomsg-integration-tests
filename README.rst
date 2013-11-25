@@ -51,7 +51,7 @@ Real Tests
 ----------
 
 All test cases are in ``cases`` directory. But while running they create a lot
-of garbage files, so you should run them from a new directory:
+of garbage files, so you should run them from a new directory::
 
     mkdir -p run/pipes
     cd run/pipes
@@ -67,9 +67,9 @@ to run the test. Usually it boils down to the following::
 
 Then you can observe the results in ``report.html``.
 
-The ``test_name`` can be find out either by looking in yaml file or by running
-the command with random name, and looking into error output. You may also
-tweak the test yaml, especially ``tests`` section to tweak test settings.
+The ``test_name`` can be discovered either by looking in yaml file or by
+running the command with random name, and looking into error output. You may
+also tweak the test yaml, especially ``tests`` section to tweak test settings.
 
 .. note:: The recommended way is to create a new directory for each test. You
    may experience some bugs when trying to run same or different test case from
@@ -96,5 +96,5 @@ to run the tests:
 You also need whatever your vagrant provider needs (e.g. virtualbox itself
 by default).
 
-Everything else including nanomsg, and other test objects are installed
-automatically inside the virtual machines
+Everything else including nanomsg, and other test software is installed
+automatically inside the virtual machines.
